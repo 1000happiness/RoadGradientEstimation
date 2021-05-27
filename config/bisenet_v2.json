@@ -1,0 +1,6 @@
+{
+    "n_classes": 19,
+    "model_path": "models/bisenet_v2.pth",
+    "cuda": true,
+    "ground_class_number": 0
+}

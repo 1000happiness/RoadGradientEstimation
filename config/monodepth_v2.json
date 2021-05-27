@@ -1,0 +1,6 @@
+{
+    "model_path": "models/mono+stereo_640x192",
+    "resnet_layer_number": 18,
+    "min_depth": 0.001,
+    "max_depth": 80
+}

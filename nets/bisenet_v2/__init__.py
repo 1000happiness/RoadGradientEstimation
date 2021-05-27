@@ -1,0 +1,1 @@
+from .bisenet_v2 import BiSeNetV2
