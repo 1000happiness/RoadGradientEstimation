@@ -2,3 +2,5 @@ assets/
 svo_data/
 test.py
 models/
+.vscode
+log/

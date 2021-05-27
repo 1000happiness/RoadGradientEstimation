@@ -39,7 +39,7 @@ parse.add_argument('--invalid_mask_path', type=str, default="")
 parse.add_argument('--show_image', action="store_true")
 
 parse.add_argument('--log_flag', action="store_true")
-parse.add_argument('--log_dir', type=str, default="assets/log")
+parse.add_argument('--log_dir', type=str, default="log")
 
 def main(args):
     # cuda or cpu
