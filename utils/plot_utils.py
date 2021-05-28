@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 
 def show_3d_points(points):
-    print(points)
     fig = plt.figure()
     axes = fig.add_subplot(111, projection='3d')
     x = points[:, 0]

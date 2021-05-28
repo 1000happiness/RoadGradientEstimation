@@ -22,7 +22,7 @@ def calibrateIntrinsicParam(args):
     obj_points = []    # 存储3D点  
     img_points = []    # 存储2D点  
     
-    images = glob.glob('{}*{}'.format(args.cali_img_folder, args.cali_img_suffix))
+    images = glob.glob('{}/*{}'.format(args.cali_img_folder, args.cali_img_suffix))
     size = None  
     for fname in images:  
         img = cv2.imread(fname)  

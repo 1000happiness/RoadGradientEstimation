@@ -34,6 +34,7 @@ parse.add_argument('--bisenet_config_path', type=str, default='config/bisenet_v2
 
 parse.add_argument('--undistort_flag', action="store_true")
 parse.add_argument('--color_lane_line_flag', action="store_true")
+parse.add_argument('--ransac_plane_flag', action="store_true")
 parse.add_argument('--invalid_mask_path', type=str, default="")
 
 parse.add_argument('--show_image', action="store_true")
@@ -206,8 +207,8 @@ def main(args):
             total_angle = get_plane2Zaxis_angle(total_plane)
 
             delta = (ground_points[-1,2] - ground_points[0,2]) / 10
-            if delta < 0.1:
-                delta = 0.1
+            if delta < 0.3:
+                delta = 0.3
             depth_values = np.linspace(ground_points[0,2], ground_points[-1,2], 10)
             angle_values = []
             used_flag_values = []
@@ -217,8 +218,11 @@ def main(args):
                     sample_points = sample_points[::len(sample_points) // 400,]
                 
                 if(len(sample_points) > 20):
-                    plane, iter = get_plane_by_ransac(sample_points, 200, delta / 5, 0.80)
-                    if (iter == 200):
+                    if args.ransac_plane_flag:
+                        plane, iter = get_plane_by_ransac(sample_points, 200, delta / 5, 0.80)
+                        if (iter == 200):
+                            plane = get_plane_by_lstsq(sample_points)
+                    else:
                         plane = get_plane_by_lstsq(sample_points)
                     angle = get_plane2Zaxis_angle(plane)
                     if angle - total_angle < 0.2:
@@ -232,7 +236,8 @@ def main(args):
             if len(used_flag_values) < 2:
                 print("Can not get slope from image")
 
-            depth_values = (depth_values[np.array(used_flag_values)] * 3).tolist()
+            depth_values = (depth_values[np.array(used_flag_values)] * 3)
+            angle_values = np.rad2deg(np.array(angle_values))
             
             print("depth", depth_values)
             print("angle", angle_values)
@@ -242,15 +247,15 @@ def main(args):
                 output_top_cv = cv2.hconcat([raw_img_cv, monodepth_colored_output_cv])
                 output_buttom_cv = cv2.hconcat([bisenet_colored_cv, masked_color_depth_output_cv])
                 output_cv = cv2.vconcat([output_top_cv, output_buttom_cv])
-                # show_3d_points(ground_points.cpu().numpy())
-                cv2.imshow('assets/output.jpg', output_cv)
+                output_cv = cv2.resize(output_cv, (1280, 720))
+                cv2.imshow('output', output_cv)
                 if cv2.waitKey(1) == 27:
                     break
                 
             if args.log_flag:
                 log_content[frame_idx] = {
-                    "depth": depth_values,
-                    "angle": angle_values
+                    "depth": depth_values.tolist(),
+                    "angle": angle_values.tolist()
                 }
 
             i_frame += 1

@@ -33,7 +33,7 @@ parse.add_argument('--monodepth_config_path', type=str, default='config/monodept
 parse.add_argument('--bisenet_config_path', type=str, default='config/bisenet_v2.json')
 
 parse.add_argument('--undistort_flag', type=int, default=1)
-parse.add_argument('--color_lane_line_flag', type=int, default=1)
+parse.add_argument('--color_lane_line_flag', type=int, default=0)
 parse.add_argument('--invalid_mask_path', type=str, default="")
 
 parse.add_argument('--show_image', action="store_true")
@@ -182,7 +182,7 @@ def main(args):
             output_top_cv = cv2.hconcat([raw_img_cv, monodepth_colored_output_cv])
             output_buttom_cv = cv2.hconcat([bisenet_colored_cv, masked_color_depth_output_cv])
             output_cv = cv2.vconcat([output_top_cv, output_buttom_cv])
-            # show_3d_points(ground_points.cpu().numpy())
+            show_3d_points(ground_points.cpu().numpy()[::500])
             cv2.imwrite('assets/output.jpg', output_cv)
         
         ground_points = ground_points.cpu().numpy()
@@ -192,8 +192,11 @@ def main(args):
         start = time.time()
 
         delta = (ground_points[-1,2] - ground_points[0,2]) / 10
+        print(delta)
         if delta < 0.1:
             delta = 0.1
+        if delta > 1:
+            delta = 1
         depth_values = np.linspace(ground_points[0,2], ground_points[-1,2], 10)
         angle_values = []
         used_flag_values = []
@@ -203,9 +206,11 @@ def main(args):
                 sample_points = sample_points[::len(sample_points) // 400,]
             
             if(len(sample_points) > 20):
-                plane = get_plane_by_ransac(sample_points, 10000, delta / 5, 0.80)
-                # plane = get_plane_by_lstsq(sample_points)
+                # plane, _ = get_plane_by_ransac(sample_points, 10000, delta / 5, 0.80)
+                plane = get_plane_by_lstsq(sample_points)
                 angle = get_plane2Zaxis_angle(plane)
+                # if args.show_image:
+                #     show_3d_points(sample_points)
                 if angle - total_angle < 0.2:
                     angle_values.append(angle)
                     used_flag_values.append(True)
@@ -220,6 +225,7 @@ def main(args):
         depth_values = depth_values[np.array(used_flag_values)] * 3
 
         end = time.time()
+        print("total", total_angle)
         print("depth", depth_values)
         print("angle", angle_values)
         print("Time:", end - start)
