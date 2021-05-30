@@ -20,7 +20,7 @@ from utils.monodepth_utils import disp_to_depth
 from utils.bisenet_utils import ToTensor
 from utils.reprojection import reprojection_to_3D, BackprojectDepth
 from utils.plane_utils import get_plane_by_lstsq, get_plane_by_ransac, get_plane2Zaxis_angle
-from utils.plot_utils import show_3d_points
+from utils.plot_utils import show_3d_points, show_3d_points_and_plane
 from utils.img_utils import color_lane_line
 
 parse = argparse.ArgumentParser()
@@ -32,8 +32,8 @@ parse.add_argument('--camera_config_path', type=str, default='config/camera.json
 parse.add_argument('--monodepth_config_path', type=str, default='config/monodepth_v2.json')
 parse.add_argument('--bisenet_config_path', type=str, default='config/bisenet_v2.json')
 
-parse.add_argument('--undistort_flag', type=int, default=1)
-parse.add_argument('--color_lane_line_flag', type=int, default=0)
+parse.add_argument('--undistort_flag', action="store_true")
+parse.add_argument('--color_lane_line_flag', action="store_true")
 parse.add_argument('--invalid_mask_path', type=str, default="")
 
 parse.add_argument('--show_image', action="store_true")
@@ -182,7 +182,7 @@ def main(args):
             output_top_cv = cv2.hconcat([raw_img_cv, monodepth_colored_output_cv])
             output_buttom_cv = cv2.hconcat([bisenet_colored_cv, masked_color_depth_output_cv])
             output_cv = cv2.vconcat([output_top_cv, output_buttom_cv])
-            show_3d_points(ground_points.cpu().numpy()[::500])
+            # show_3d_points(ground_points.cpu().numpy()[::500])
             cv2.imwrite('assets/output.jpg', output_cv)
         
         ground_points = ground_points.cpu().numpy()
@@ -201,16 +201,21 @@ def main(args):
         angle_values = []
         used_flag_values = []
         for i in depth_values:
+            if i < 5 / 3 or i > 30 / 3:
+                used_flag_values.append(False)
+                continue
+
             sample_points = ground_points[(ground_points[:,2] < i + delta) & (ground_points[:,2] > i)]
             if(len(sample_points) > 400):
                 sample_points = sample_points[::len(sample_points) // 400,]
             
             if(len(sample_points) > 20):
-                # plane, _ = get_plane_by_ransac(sample_points, 10000, delta / 5, 0.80)
+                # plane, _ = get_plane_by_ransac(sample_points, 10000, delta / 20, 0.90)
                 plane = get_plane_by_lstsq(sample_points)
                 angle = get_plane2Zaxis_angle(plane)
                 # if args.show_image:
-                #     show_3d_points(sample_points)
+                #     show_3d_points_and_plane(sample_points, plane)
+
                 if angle - total_angle < 0.2:
                     angle_values.append(angle)
                     used_flag_values.append(True)
@@ -223,6 +228,7 @@ def main(args):
             print("Can not get slope from image")
 
         depth_values = depth_values[np.array(used_flag_values)] * 3
+        angle_values = np.rad2deg(np.array(angle_values))
 
         end = time.time()
         print("total", total_angle)
@@ -233,6 +239,7 @@ def main(args):
         if args.show_image:
             plt.scatter(depth_values, angle_values)
             plt.ylim(0, np.pi / 6)
+            plt.xlim(5, 30)
             plt.xlabel("depth(m)")
             plt.ylabel("angle(rad)")
             plt.show()

@@ -140,6 +140,9 @@ def main(args):
     with torch.no_grad():
         while(camera.loop_flag):
             raw_img_cv, frame_idx = camera.get_current_frame()
+            print(frame_idx)
+            if frame_idx >= args.max_frame:
+                break
 
             # preprocess img
             if args.undistort_flag:
@@ -239,10 +242,11 @@ def main(args):
             depth_values = (depth_values[np.array(used_flag_values)] * 3)
             angle_values = np.rad2deg(np.array(angle_values))
             
-            print("depth", depth_values)
-            print("angle", angle_values)
+            
             
             if args.show_image: 
+                print("depth", depth_values)
+                print("angle", angle_values)
                 masked_color_depth_output_cv = monodepth_colored_output_cv * cv2.cvtColor(ground_mask_np, cv2.COLOR_GRAY2BGR)
                 output_top_cv = cv2.hconcat([raw_img_cv, monodepth_colored_output_cv])
                 output_buttom_cv = cv2.hconcat([bisenet_colored_cv, masked_color_depth_output_cv])
@@ -259,8 +263,7 @@ def main(args):
                 }
 
             i_frame += 1
-            if i_frame == args.max_frame:
-                break
+            
     
     t1 = time.time()
 
